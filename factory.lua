@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ROOT = getgenv and getgenv() or _G
 local FACTORY_GUI_NAME = "FactoryAutomationGui"
 local FACTORY_STATE_KEY = "__FactoryAutomationState"
+local FACTORY_RUN_KEY = "__FactoryAutomationRunId"
 
 local localPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local playerGui = localPlayer:WaitForChild("PlayerGui")
@@ -14,6 +15,9 @@ if type(ROOT[FACTORY_STATE_KEY]) == "table" and type(ROOT[FACTORY_STATE_KEY].Sto
         ROOT[FACTORY_STATE_KEY]:Stop()
     end)
 end
+
+ROOT[FACTORY_RUN_KEY] = (tonumber(ROOT[FACTORY_RUN_KEY]) or 0) + 1
+local currentRunId = ROOT[FACTORY_RUN_KEY]
 
 local function getMachineClickRemote()
     local eventsFolder = ReplicatedStorage:WaitForChild("Events")
@@ -39,11 +43,13 @@ local state = {
     Connections = {},
     EventStates = {},
     Rows = {},
+    RunId = currentRunId,
 }
 
-local existingGui = playerGui:FindFirstChild(FACTORY_GUI_NAME)
-if existingGui then
-    existingGui:Destroy()
+for _, child in ipairs(playerGui:GetChildren()) do
+    if child.Name == FACTORY_GUI_NAME then
+        child:Destroy()
+    end
 end
 
 local function bind(signal, callback)
@@ -79,9 +85,16 @@ local function makeStroke(instance, color, transparency, thickness)
 end
 
 local function createText(parent, props)
-    local label = Instance.new(props.Button and "TextButton" or "TextLabel")
-    label.BackgroundTransparency = props.BackgroundTransparency or 1
-    label.BackgroundColor3 = props.BackgroundColor3
+    local isButton = props.Button == true
+    local label = Instance.new(isButton and "TextButton" or "TextLabel")
+    if props.BackgroundTransparency ~= nil then
+        label.BackgroundTransparency = props.BackgroundTransparency
+    else
+        label.BackgroundTransparency = isButton and 0 or 1
+    end
+    if props.BackgroundColor3 then
+        label.BackgroundColor3 = props.BackgroundColor3
+    end
     label.BorderSizePixel = 0
     label.Position = props.Position or UDim2.new()
     label.Size = props.Size or UDim2.new()
@@ -92,7 +105,9 @@ local function createText(parent, props)
     label.TextWrapped = props.TextWrapped == true
     label.TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left
     label.TextYAlignment = props.TextYAlignment or Enum.TextYAlignment.Center
-    label.AutoButtonColor = props.Button == true
+    if isButton then
+        label.AutoButtonColor = true
+    end
     label.Parent = parent
     return label
 end
@@ -114,23 +129,32 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = FACTORY_GUI_NAME
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.IgnoreGuiInset = true
 screenGui.Parent = playerGui
 
 local isTouchDevice = UserInputService.TouchEnabled == true
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = isTouchDevice and UDim2.new(0, 340, 0, 240) or UDim2.new(0, 420, 0, 250)
+mainFrame.Size = isTouchDevice and UDim2.new(0, 352, 0, 252) or UDim2.new(0, 430, 0, 262)
 mainFrame.Position = UDim2.new(0.5, -(mainFrame.Size.X.Offset / 2), 0.5, -(mainFrame.Size.Y.Offset / 2))
-mainFrame.BackgroundColor3 = Color3.fromRGB(16, 20, 31)
+mainFrame.BackgroundColor3 = Color3.fromRGB(24, 31, 46)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 makeCorner(mainFrame, 18)
-makeStroke(mainFrame, Color3.fromRGB(90, 163, 255), 0.3, 1.1)
+makeStroke(mainFrame, Color3.fromRGB(93, 181, 255), 0.18, 1.2)
+
+local mainGradient = Instance.new("UIGradient")
+mainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(36, 46, 68)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(21, 28, 42)),
+})
+mainGradient.Rotation = 90
+mainGradient.Parent = mainFrame
 
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 46)
-header.BackgroundColor3 = Color3.fromRGB(22, 27, 40)
+header.BackgroundColor3 = Color3.fromRGB(58, 123, 207)
 header.BorderSizePixel = 0
 header.Parent = mainFrame
 makeCorner(header, 18)
@@ -177,10 +201,13 @@ local minimizeButton = createText(header, {
 makeCorner(minimizeButton, 9)
 
 local body = Instance.new("Frame")
-body.BackgroundTransparency = 1
+body.BackgroundColor3 = Color3.fromRGB(18, 24, 37)
+body.BackgroundTransparency = 0
 body.Position = UDim2.new(0, 12, 0, 58)
 body.Size = UDim2.new(1, -24, 1, -70)
 body.Parent = mainFrame
+makeCorner(body, 16)
+makeStroke(body, Color3.fromRGB(90, 109, 148), 0.45, 1)
 
 local summaryLabel = createText(body, {
     Position = UDim2.new(0, 0, 0, 0),
@@ -269,11 +296,11 @@ local function createEventRow(index, eventConfig)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, 0, 0, 130)
     row.Position = UDim2.new(0, 0, 0, (index - 1) * 138)
-    row.BackgroundColor3 = Color3.fromRGB(20, 26, 40)
+    row.BackgroundColor3 = Color3.fromRGB(34, 43, 62)
     row.BorderSizePixel = 0
     row.Parent = rowHolder
     makeCorner(row, 16)
-    makeStroke(row, Color3.fromRGB(78, 92, 128), 0.45, 1)
+    makeStroke(row, Color3.fromRGB(106, 124, 168), 0.3, 1)
 
     createText(row, {
         Position = UDim2.new(0, 14, 0, 12),
@@ -358,6 +385,10 @@ function state:Stop()
     self.Running = false
     disconnectAll()
 
+    for _, eventState in pairs(self.EventStates) do
+        eventState.Enabled = false
+    end
+
     if screenGui then
         screenGui:Destroy()
     end
@@ -423,7 +454,7 @@ end
 for _, eventConfig in ipairs(EVENTS) do
     task.spawn(function()
         local eventState = state.EventStates[eventConfig.Id]
-        while state.Running do
+        while state.Running and state.RunId == ROOT[FACTORY_RUN_KEY] do
             if eventState.Enabled == true then
                 local ok, err = pcall(eventConfig.Run)
                 if not ok then
