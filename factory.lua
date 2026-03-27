@@ -30,7 +30,7 @@ local EVENTS = {
         Title = "Manual Machine",
         Description = 'game:GetService("ReplicatedStorage").Events.MachineClickEvent:FireServer("ManualMachine")',
         ToggleKey = Enum.KeyCode.F,
-        Delay = 0.15,
+        Delay = 0.01,
         Run = function()
             getMachineClickRemote():FireServer("ManualMachine")
         end,
