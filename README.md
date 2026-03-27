@@ -11,7 +11,7 @@ loadstring(readfile("factory\\factory.lua"), "@factory\\factory.lua")()
 Ou pelo GitHub Raw:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/SEU_USUARIO/factory/main/factory.lua", true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/marcoscarneiroaj/factory/main/factory.lua", true))()
 ```
 
 ## Evento atual
